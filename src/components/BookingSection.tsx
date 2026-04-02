@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Flower2, Droplets, Sparkles, Heart, Leaf,
   CalendarDays, Clock, User, Phone, Mail, MessageSquare,
-  ChevronRight, ChevronLeft, Check, AlertCircle,
+  ChevronRight, ChevronLeft, Check, AlertCircle, Loader2,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 /* ─── data ─── */
 const services = [
@@ -16,18 +18,9 @@ const services = [
 ];
 
 const timeSlots = [
-  { time: "9:00 AM", available: true },
-  { time: "10:00 AM", available: true },
-  { time: "11:00 AM", available: false },
-  { time: "12:00 PM", available: true },
-  { time: "1:00 PM", available: true },
-  { time: "2:00 PM", available: false },
-  { time: "3:00 PM", available: true },
-  { time: "4:00 PM", available: true },
-  { time: "5:00 PM", available: true },
-  { time: "6:00 PM", available: false },
-  { time: "7:00 PM", available: true },
-  { time: "8:00 PM", available: true },
+  "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+  "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM",
+  "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM",
 ];
 
 const steps = ["Service", "Date & Time", "Details", "Confirm"];
@@ -48,6 +41,8 @@ const BookingSection = () => {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
 
   /* form state */
   const [selectedService, setSelectedService] = useState("");
@@ -57,6 +52,24 @@ const BookingSection = () => {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+
+  /* fetch booked slots when date changes */
+  const fetchBookedSlots = useCallback(async (date: Date) => {
+    const dateStr = date.toISOString().split("T")[0];
+    const { data } = await supabase
+      .from("bookings")
+      .select("booking_time")
+      .eq("booking_date", dateStr)
+      .neq("status", "cancelled");
+    setBookedSlots(data?.map((b) => b.booking_time) ?? []);
+  }, []);
+
+  useEffect(() => {
+    if (selectedDate) {
+      fetchBookedSlots(selectedDate);
+      setSelectedTime("");
+    }
+  }, [selectedDate, fetchBookedSlots]);
 
   /* calendar state */
   const today = new Date();
@@ -102,8 +115,39 @@ const BookingSection = () => {
   };
   const goBack = () => { setDirection(-1); setStep(step - 1); };
 
-  const handleSubmit = () => {
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    if (!selectedDate || !selectedService) return;
+    setIsSubmitting(true);
+    try {
+      const dateStr = selectedDate.toISOString().split("T")[0];
+      const { error } = await supabase.from("bookings").insert({
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        service: services.find((s) => s.id === selectedService)?.title ?? selectedService,
+        booking_date: dateStr,
+        booking_time: selectedTime,
+        notes: notes.trim() || null,
+      });
+      if (error) {
+        if (error.code === "23505") {
+          toast.error("This time slot was just booked. Please choose another.");
+          setSelectedTime("");
+          await fetchBookedSlots(selectedDate);
+          setDirection(-1);
+          setStep(1);
+        } else {
+          toast.error("Booking failed. Please try again.");
+        }
+        return;
+      }
+      setSubmitted(true);
+      toast.success("Booking confirmed! ✨");
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -131,7 +175,7 @@ const BookingSection = () => {
     exit: (dir: number) => ({ x: dir > 0 ? -80 : 80, opacity: 0 }),
   };
 
-  const availableCount = timeSlots.filter((t) => t.available).length;
+  const availableCount = timeSlots.filter((t) => !bookedSlots.includes(t)).length;
 
   return (
     <section id="booking" ref={sectionRef} className="py-24 md:py-32 relative overflow-hidden scroll-mt-20">
@@ -412,14 +456,15 @@ const BookingSection = () => {
                         </div>
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                           {timeSlots.map((slot) => {
-                            const active = selectedTime === slot.time;
+                            const active = selectedTime === slot;
+                            const booked = bookedSlots.includes(slot);
                             return (
                               <button
-                                key={slot.time}
-                                disabled={!slot.available || !selectedDate}
-                                onClick={() => setSelectedTime(slot.time)}
+                                key={slot}
+                                disabled={booked || !selectedDate}
+                                onClick={() => setSelectedTime(slot)}
                                 className={`py-2.5 rounded-xl text-xs font-body font-medium transition-all duration-200 ${
-                                  !slot.available
+                                  booked
                                     ? "bg-muted/50 text-muted-foreground/40 cursor-not-allowed line-through"
                                     : active
                                     ? "gradient-rose text-primary-foreground shadow-md scale-105"
@@ -428,7 +473,7 @@ const BookingSection = () => {
                                     : "bg-background/60 text-foreground border border-border/40 hover:border-primary/40 hover:bg-primary/5"
                                 }`}
                               >
-                                {slot.time}
+                                {slot}
                               </button>
                             );
                           })}
@@ -601,16 +646,23 @@ const BookingSection = () => {
                 )}
                 <button
                   onClick={goNext}
-                  disabled={!canNext()}
+                  disabled={!canNext() || isSubmitting}
                   className={`gradient-rose text-primary-foreground px-8 py-3 rounded-full text-sm font-semibold glow-button inline-flex items-center gap-2 group transition-all ${
-                    !canNext() ? "opacity-50 cursor-not-allowed" : ""
+                    !canNext() || isSubmitting ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
                   {step === 3 ? (
-                    <>
-                      <Check size={16} />
-                      Confirm Booking
-                    </>
+                    isSubmitting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Booking...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} />
+                        Confirm Booking
+                      </>
+                    )
                   ) : (
                     <>
                       Continue
