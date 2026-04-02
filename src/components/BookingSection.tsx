@@ -175,7 +175,7 @@ const BookingSection = () => {
     exit: (dir: number) => ({ x: dir > 0 ? -80 : 80, opacity: 0 }),
   };
 
-  const availableCount = timeSlots.filter((t) => t.available).length;
+  const availableCount = timeSlots.filter((t) => !bookedSlots.includes(t)).length;
 
   return (
     <section id="booking" ref={sectionRef} className="py-24 md:py-32 relative overflow-hidden scroll-mt-20">
