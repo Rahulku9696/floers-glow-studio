@@ -646,16 +646,23 @@ const BookingSection = () => {
                 )}
                 <button
                   onClick={goNext}
-                  disabled={!canNext()}
+                  disabled={!canNext() || isSubmitting}
                   className={`gradient-rose text-primary-foreground px-8 py-3 rounded-full text-sm font-semibold glow-button inline-flex items-center gap-2 group transition-all ${
-                    !canNext() ? "opacity-50 cursor-not-allowed" : ""
+                    !canNext() || isSubmitting ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
                   {step === 3 ? (
-                    <>
-                      <Check size={16} />
-                      Confirm Booking
-                    </>
+                    isSubmitting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Booking...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} />
+                        Confirm Booking
+                      </>
+                    )
                   ) : (
                     <>
                       Continue
