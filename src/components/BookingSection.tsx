@@ -456,14 +456,15 @@ const BookingSection = () => {
                         </div>
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                           {timeSlots.map((slot) => {
-                            const active = selectedTime === slot.time;
+                            const active = selectedTime === slot;
+                            const booked = bookedSlots.includes(slot);
                             return (
                               <button
-                                key={slot.time}
-                                disabled={!slot.available || !selectedDate}
-                                onClick={() => setSelectedTime(slot.time)}
+                                key={slot}
+                                disabled={booked || !selectedDate}
+                                onClick={() => setSelectedTime(slot)}
                                 className={`py-2.5 rounded-xl text-xs font-body font-medium transition-all duration-200 ${
-                                  !slot.available
+                                  booked
                                     ? "bg-muted/50 text-muted-foreground/40 cursor-not-allowed line-through"
                                     : active
                                     ? "gradient-rose text-primary-foreground shadow-md scale-105"
@@ -472,7 +473,7 @@ const BookingSection = () => {
                                     : "bg-background/60 text-foreground border border-border/40 hover:border-primary/40 hover:bg-primary/5"
                                 }`}
                               >
-                                {slot.time}
+                                {slot}
                               </button>
                             );
                           })}
