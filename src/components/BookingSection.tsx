@@ -50,6 +50,8 @@ const BookingSection = () => {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
 
   /* form state */
   const [selectedService, setSelectedService] = useState("");
@@ -59,6 +61,24 @@ const BookingSection = () => {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+
+  /* fetch booked slots when date changes */
+  const fetchBookedSlots = useCallback(async (date: Date) => {
+    const dateStr = date.toISOString().split("T")[0];
+    const { data } = await supabase
+      .from("bookings")
+      .select("booking_time")
+      .eq("booking_date", dateStr)
+      .neq("status", "cancelled");
+    setBookedSlots(data?.map((b) => b.booking_time) ?? []);
+  }, []);
+
+  useEffect(() => {
+    if (selectedDate) {
+      fetchBookedSlots(selectedDate);
+      setSelectedTime("");
+    }
+  }, [selectedDate, fetchBookedSlots]);
 
   /* calendar state */
   const today = new Date();
