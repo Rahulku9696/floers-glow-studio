@@ -124,8 +124,39 @@ const BookingSection = () => {
   };
   const goBack = () => { setDirection(-1); setStep(step - 1); };
 
-  const handleSubmit = () => {
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    if (!selectedDate || !selectedService) return;
+    setIsSubmitting(true);
+    try {
+      const dateStr = selectedDate.toISOString().split("T")[0];
+      const { error } = await supabase.from("bookings").insert({
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        service: services.find((s) => s.id === selectedService)?.title ?? selectedService,
+        booking_date: dateStr,
+        booking_time: selectedTime,
+        notes: notes.trim() || null,
+      });
+      if (error) {
+        if (error.code === "23505") {
+          toast.error("This time slot was just booked. Please choose another.");
+          setSelectedTime("");
+          await fetchBookedSlots(selectedDate);
+          setDirection(-1);
+          setStep(1);
+        } else {
+          toast.error("Booking failed. Please try again.");
+        }
+        return;
+      }
+      setSubmitted(true);
+      toast.success("Booking confirmed! ✨");
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
