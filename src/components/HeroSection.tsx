@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight, Phone } from "lucide-react";
 import heroImage from "@/assets/hero-spa.jpg";
 
 const HeroSection = () => {
