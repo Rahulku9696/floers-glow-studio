@@ -61,17 +61,18 @@ const HeroSection = () => {
             className="flex flex-col sm:flex-row gap-4"
           >
             <a
-              href="#contact"
+              href="#booking"
               className="gradient-rose text-primary-foreground px-8 py-4 rounded-full text-base font-semibold glow-button inline-flex items-center justify-center gap-2 group"
             >
-              Get Pampered Now
+              Book Appointment
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </a>
             <a
-              href="#services"
-              className="glass text-foreground px-8 py-4 rounded-full text-base font-semibold inline-flex items-center justify-center hover:bg-primary/10 transition-colors"
+              href="tel:+14236652266"
+              className="glass text-foreground px-8 py-4 rounded-full text-base font-semibold inline-flex items-center justify-center gap-2 hover:bg-primary/10 transition-colors"
             >
-              Explore Services
+              <Phone size={18} />
+              Call Now
             </a>
           </motion.div>
         </div>
