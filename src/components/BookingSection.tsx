@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Flower2, Droplets, Sparkles, Heart, Leaf,
   CalendarDays, Clock, User, Phone, Mail, MessageSquare,
-  ChevronRight, ChevronLeft, Check, AlertCircle,
+  ChevronRight, ChevronLeft, Check, AlertCircle, Loader2,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 /* ─── data ─── */
 const services = [
